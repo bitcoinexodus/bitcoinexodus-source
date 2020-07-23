@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/bitcoinexodus/.bitcoinexodus" ]; then
+	BITCOINEXODUSD_DEFAULT_DATADIR="/var/lib/bitcoinexodus/.bitcoinexodus"
+else
+	BITCOINEXODUSD_DEFAULT_DATADIR="/var/lib/bitcoinexodusd"
+fi
+
+BITCOINEXODUSD_CONFIGFILE=${BITCOINEXODUSD_CONFIGFILE:-/etc/bitcoinexodus/bitcoinexodus.conf}
+BITCOINEXODUSD_PIDDIR=${BITCOINEXODUSD_PIDDIR:-/var/run/bitcoinexodusd}
+BITCOINEXODUSD_PIDFILE=${BITCOINEXODUSD_PIDFILE:-${BITCOINEXODUSD_PIDDIR}/bitcoinexodusd.pid}
+BITCOINEXODUSD_DATADIR=${BITCOINEXODUSD_DATADIR:-${BITCOINEXODUSD_DEFAULT_DATADIR}}
+BITCOINEXODUSD_USER=${BITCOINEXODUSD_USER:-${BITCOINEXODUS_USER:-bitcoinexodus}}
+BITCOINEXODUSD_GROUP=${BITCOINEXODUSD_GROUP:-bitcoinexodus}
+BITCOINEXODUSD_BIN=${BITCOINEXODUSD_BIN:-/usr/bin/bitcoinexodusd}
+BITCOINEXODUSD_NICE=${BITCOINEXODUSD_NICE:-${NICELEVEL:-0}}
+BITCOINEXODUSD_OPTS="${BITCOINEXODUSD_OPTS:-${BITCOINEXODUS_OPTS}}"
+
+name="BitcoinExodus Core Daemon"
+description="BitcoinExodus cryptocurrency P2P network daemon"
+
+command="/usr/bin/bitcoinexodusd"
+command_args="-pid=\"${BITCOINEXODUSD_PIDFILE}\" \
+		-conf=\"${BITCOINEXODUSD_CONFIGFILE}\" \
+		-datadir=\"${BITCOINEXODUSD_DATADIR}\" \
+		-daemon \
+		${BITCOINEXODUSD_OPTS}"
+
+required_files="${BITCOINEXODUSD_CONFIGFILE}"
+start_stop_daemon_args="-u ${BITCOINEXODUSD_USER} \
+			-N ${BITCOINEXODUSD_NICE} -w 2000"
+pidfile="${BITCOINEXODUSD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${BITCOINEXODUSD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${BITCOINEXODUSD_USER}:${BITCOINEXODUSD_GROUP}" \
+	"${BITCOINEXODUSD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${BITCOINEXODUSD_USER}:${BITCOINEXODUSD_GROUP}" \
+	"${BITCOINEXODUSD_PIDDIR}"
+
+	checkpath -f \
+	-o ${BITCOINEXODUSD_USER}:${BITCOINEXODUSD_GROUP} \
+	-m 0660 \
+	${BITCOINEXODUSD_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${BITCOINEXODUSD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run bitcoinexodusd."
+		eerror "The setting must appear in ${BITCOINEXODUSD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"BitcoinExodus Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

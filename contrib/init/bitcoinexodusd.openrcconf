@@ -1,0 +1,33 @@
+# /etc/conf.d/bitcoinexodusd: config file for /etc/init.d/bitcoinexodusd
+
+# Config file location
+#BITCOINEXODUSD_CONFIGFILE="/etc/bitcoinexodus/bitcoinexodus.conf"
+
+# What directory to write pidfile to?  (created and owned by $BITCOINEXODUSD_USER)
+#BITCOINEXODUSD_PIDDIR="/var/run/bitcoinexodusd"
+
+# What filename to give the pidfile
+#BITCOINEXODUSD_PIDFILE="${BITCOINEXODUSD_PIDDIR}/bitcoinexodusd.pid"
+
+# Where to write bitcoinexodusd data (be mindful that the blockchain is large)
+#BITCOINEXODUSD_DATADIR="/var/lib/bitcoinexodusd"
+
+# User and group to own bitcoinexodusd process
+#BITCOINEXODUSD_USER="bitcoinexodus"
+#BITCOINEXODUSD_GROUP="bitcoinexodus"
+
+# Path to bitcoinexodusd executable
+#BITCOINEXODUSD_BIN="/usr/bin/bitcoinexodusd"
+
+# Nice value to run bitcoinexodusd under
+#BITCOINEXODUSD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#BITCOINEXODUSD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for bitcoinexodusd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+BITCOINEXODUSD_SIGTERM_TIMEOUT=60
